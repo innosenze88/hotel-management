@@ -23,24 +23,33 @@ const BookingList: React.FC<BookingListProps> = ({ bookings }) => {
   }
 
   return (
-    <div className="max-h-80 overflow-y-auto pr-2 -mr-2">
-      <div className="w-full text-sm text-left text-gray-400">
-        {bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((booking) => (
-            <div key={booking.id} className="bg-gray-700/50 p-3 rounded-lg mb-2">
-                <div className="flex justify-between items-center">
-                    <p className="font-semibold text-white">
-                        Room {booking.roomNumber} - <span className="font-normal">{booking.guestName}</span>
-                    </p>
-                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusColors[booking.status]}`}>
-                        {booking.status}
-                    </span>
-                </div>
-                <p className="text-xs text-gray-400 mt-1">
-                    {booking.startDate} to {booking.endDate}
-                </p>
-            </div>
-        ))}
-      </div>
+    <div className="max-h-96 overflow-y-auto">
+      <table className="w-full text-sm text-left text-gray-400">
+        <thead className="text-xs text-gray-300 uppercase bg-gray-700 sticky top-0">
+          <tr>
+            <th scope="col" className="px-4 py-3">Room</th>
+            <th scope="col" className="px-4 py-3">Guest</th>
+            <th scope="col" className="px-4 py-3 hidden sm:table-cell">Check-in</th>
+            <th scope="col" className="px-4 py-3 hidden md:table-cell">Check-out</th>
+            <th scope="col" className="px-4 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((booking) => (
+            <tr key={booking.id} className="border-b border-gray-700 hover:bg-gray-700/50">
+              <td className="px-4 py-3 font-medium text-white">{booking.roomNumber}</td>
+              <td className="px-4 py-3">{booking.guestName}</td>
+              <td className="px-4 py-3 hidden sm:table-cell">{booking.startDate}</td>
+              <td className="px-4 py-3 hidden md:table-cell">{booking.endDate}</td>
+              <td className="px-4 py-3">
+                <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusColors[booking.status]}`}>
+                  {booking.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
