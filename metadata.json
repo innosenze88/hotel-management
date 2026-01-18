@@ -1,0 +1,5 @@
+{
+  "name": "Hotel Pulse Dashboard",
+  "description": "A modern, real-time dashboard for hotel management, displaying key performance indicators, room statuses, daily arrivals, and occupancy forecasts.",
+  "requestFramePermissions": []
+}
