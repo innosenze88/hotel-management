@@ -6,7 +6,7 @@ interface RoomManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   rooms: Room[];
-  onSave: (updatedRooms: Room[]) => void;
+  onSave: (updatedRooms: Room[], closeModal?: boolean) => void;
 }
 
 const generateId = () => `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -45,17 +45,23 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen, onClo
   };
 
   const handleDelete = (roomId: string) => {
-    if (window.confirm('Are you sure you want to delete this room? This action cannot be undone.\n\nคุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+    // Prompt for confirmation before proceeding with deletion.
+    const isConfirmed = window.confirm('Are you sure you want to delete this room? This action cannot be undone.\n\nคุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้');
+    
+    if (isConfirmed) {
       const updatedRooms = currentRooms.filter(r => r.id !== roomId);
       
-      // If the room being edited is deleted, reset the form to prevent inconsistencies
+      // Update internal state immediately for a responsive UI
+      setCurrentRooms(updatedRooms);
+      
+      // If the room being edited is deleted, reset the form to prevent inconsistencies.
       if (isEditing && selectedRoom.id === roomId) {
         setSelectedRoom(emptyRoomState);
         setIsEditing(false);
       }
       
-      // Immediately call onSave to persist the deletion
-      onSave(updatedRooms);
+      // Call onSave to persist the deletion but keep the modal open.
+      onSave(updatedRooms, false);
     }
   };
 
@@ -91,7 +97,8 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen, onClo
   };
   
   const handleSaveChanges = () => {
-      onSave(currentRooms);
+      // Call onSave and instruct it to close the modal.
+      onSave(currentRooms, true);
   };
 
   if (!isOpen) return null;

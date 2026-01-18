@@ -10,6 +10,7 @@ import ForecastChart from './components/ForecastChart';
 import LoadingSpinner from './components/LoadingSpinner';
 import RoomManagementModal from './components/RoomManagementModal';
 import { BedIcon, DollarSignIcon, UsersIcon, ChartBarIcon } from './components/icons';
+import BookingForm from './components_BookingForm';
 
 const App: React.FC = () => {
   const [kpis, setKpis] = useState<KpiData | null>(null);
@@ -51,7 +52,7 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const handleSaveRooms = async (updatedRooms: Room[]) => {
+  const handleSaveRooms = async (updatedRooms: Room[], closeModal = true) => {
       setLoading(true);
       setError(null);
       try {
@@ -71,7 +72,9 @@ const App: React.FC = () => {
           // If save fails, refetch from storage to revert optimistic update
           await fetchData(false);
       } finally {
-          setIsRoomModalOpen(false);
+          if (closeModal) {
+            setIsRoomModalOpen(false);
+          }
           setLoading(false);
       }
   };
@@ -133,6 +136,10 @@ const App: React.FC = () => {
               <RoomGrid rooms={rooms} />
             </div>
             <div className="space-y-8">
+              <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
+                <h2 className="text-xl font-bold mb-4 text-white">Book a Room</h2>
+                <BookingForm />
+              </div>
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Today's Arrivals</h2>
                 <ArrivalsList arrivals={arrivals} />
