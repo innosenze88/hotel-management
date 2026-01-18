@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { KpiData, Room, Arrival, ForecastPoint } from './types';
+import { KpiData, Room, Arrival, ForecastPoint, Booking } from './types';
 import * as api from './services/api';
 import Header from './components/Header';
 import KpiCard from './components/KpiCard';
@@ -10,13 +10,14 @@ import ForecastChart from './components/ForecastChart';
 import LoadingSpinner from './components/LoadingSpinner';
 import RoomManagementModal from './components/RoomManagementModal';
 import { BedIcon, DollarSignIcon, UsersIcon, ChartBarIcon } from './components/icons';
-import BookingForm from './components/BookingForm';
+import BookingList from './components/BookingList';
 
 const App: React.FC = () => {
   const [kpis, setKpis] = useState<KpiData | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [arrivals, setArrivals] = useState<Arrival[]>([]);
   const [forecast, setForecast] = useState<ForecastPoint[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -26,17 +27,24 @@ const App: React.FC = () => {
     if (showLoading) setLoading(true);
     setError(null);
     try {
-      const roomData = await api.fetchRooms();
+      // Fetch all data in parallel for better performance
+      const [roomData, forecastData, bookingsData] = await Promise.all([
+        api.fetchRooms(),
+        api.fetchForecast(),
+        api.fetchBookings(),
+      ]);
       setRooms(roomData);
+      setForecast(forecastData);
+      setBookings(bookingsData);
 
-      const [kpiData, arrivalData, forecastData] = await Promise.all([
+      // Dependent fetches: KPIs and Arrivals depend on room data
+      const [kpiData, arrivalData] = await Promise.all([
         api.fetchKpis(roomData),
         api.fetchArrivals(roomData),
-        api.fetchForecast(),
       ]);
       setKpis(kpiData);
       setArrivals(arrivalData);
-      setForecast(forecastData);
+
       setLastUpdated(new Date());
     } catch (err) {
       setError('Failed to fetch dashboard data. Please try again later.');
@@ -57,20 +65,11 @@ const App: React.FC = () => {
       setError(null);
       try {
           await api.saveRooms(updatedRooms);
-          // Optimistically update state for a snappier feel and consistency
-          setRooms(updatedRooms);
-          const [kpiData, arrivalData] = await Promise.all([
-              api.fetchKpis(updatedRooms),
-              api.fetchArrivals(updatedRooms),
-          ]);
-          setKpis(kpiData);
-          setArrivals(arrivalData);
-          setLastUpdated(new Date());
+          // After saving, refetch all data to ensure consistency
+          await fetchData(false);
       } catch (err) {
           setError('Failed to save room data. Please try again later.');
           console.error(err);
-          // If save fails, refetch from storage to revert optimistic update
-          await fetchData(false);
       } finally {
           if (closeModal) {
             setIsRoomModalOpen(false);
@@ -80,7 +79,7 @@ const App: React.FC = () => {
   };
 
   const handleBookingSuccess = () => {
-    // Refetch data without the main loading spinner to update KPIs, arrivals, etc.
+    // Refetch data without the main loading spinner to update all components
     fetchData(false);
   };
 
@@ -142,9 +141,8 @@ const App: React.FC = () => {
             </div>
             <div className="space-y-8">
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
-                <h2 className="text-xl font-bold mb-4 text-white">Book a Room</h2>
-                {/* FIX: Pass the required onBookingSuccess prop to BookingForm. */}
-                <BookingForm onBookingSuccess={handleBookingSuccess} />
+                <h2 className="text-xl font-bold mb-4 text-white">Current Bookings</h2>
+                <BookingList bookings={bookings} />
               </div>
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Today's Arrivals</h2>

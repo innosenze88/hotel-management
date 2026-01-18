@@ -55,12 +55,14 @@ export interface ForecastPoint {
 
 // --- Merged types from booking system ---
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+export type BookingStatus = 'Confirmed' | 'Checked-in' | 'Checked-out' | 'Cancelled';
 
 export interface Booking {
   id: string;
   roomId: string;
   userId: string;
+  guestName: string;
+  roomNumber: string;
   startDate: string; // ISO date (YYYY-MM-DD)
   endDate: string; // ISO date (YYYY-MM-DD)
   totalAmount: number;

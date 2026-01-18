@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Room, Booking, User } from '../types';
 import { searchAvailableRooms, createBooking, fetchRooms } from '../services/api';
-import BookingConfirmation from './BookingConfirmation';
 
 interface BookingFormProps {
     room?: Room; // Allow a specific room to be passed for direct booking
@@ -16,7 +15,6 @@ const BookingForm: React.FC<BookingFormProps> = ({ room, onBookingSuccess, onCan
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bookingResult, setBookingResult] = useState<Booking | null>(null);
   const [allRooms, setAllRooms] = useState<Room[]>([]);
 
   useEffect(() => {
@@ -61,7 +59,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ room, onBookingSuccess, onCan
       const booking = await createBooking({ roomId, user, startDate, endDate });
       onBookingSuccess(booking);
       // Refresh available list after booking
-      handleSearch();
+      if(!room) {
+        handleSearch();
+      }
     } catch (err: any) {
       setError(err.message || 'ไม่สามารถทำการจองได้');
     } finally {
@@ -95,9 +95,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ room, onBookingSuccess, onCan
       {error && <div className="text-red-400 text-sm text-center">{error}</div>}
 
       <div className="space-y-4">
-        <h4 className="text-lg font-semibold text-gray-200">{availableRooms.length > 0 ? 'Available Rooms' : 'Room Details'}</h4>
+        <h4 className="text-lg font-semibold text-gray-200">{room ? 'Room Details' : (availableRooms.length > 0 ? 'Available Rooms' : 'Room Suggestions')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2">
-          {roomsToShow.map((r) => {
+          {roomsToShow.slice(0, room ? 1 : 10).map((r) => {
             const nights =
               startDate && endDate && new Date(endDate) > new Date(startDate)
                 ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)))
@@ -125,7 +125,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ room, onBookingSuccess, onCan
         </div>
       </div>
       {onCancel && (
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-4 mt-4 border-t border-slate-700">
               <button onClick={onCancel} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                   Cancel
               </button>

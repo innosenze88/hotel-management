@@ -1,5 +1,5 @@
 
-import { KpiData, Room, Arrival, ForecastPoint, RoomType, RoomStatus, Booking, User } from '../types';
+import { KpiData, Room, Arrival, ForecastPoint, RoomType, RoomStatus, Booking, User, BookingStatus } from '../types';
 
 const ROOMS_KEY = 'hotel_pulse_rooms';
 const BOOKINGS_KEY = 'hotel_pulse_bookings';
@@ -195,6 +195,12 @@ export const fetchForecast = async (): Promise<ForecastPoint[]> => {
   return generateMockForecast();
 };
 
+export const fetchBookings = async (): Promise<Booking[]> => {
+  await delay(150);
+  return readBookings();
+};
+
+
 // --- API FUNCTIONS (Bookings) ---
 export async function searchAvailableRooms(startDate: string, endDate: string): Promise<Room[]> {
   // Fix: Added missing argument to the 'delay' function call.
@@ -208,7 +214,7 @@ export async function searchAvailableRooms(startDate: string, endDate: string): 
   return allRooms.filter((room) => {
     const hasConflict = bookings.some((b) => 
       b.roomId === room.id && 
-      b.status !== 'cancelled' && 
+      b.status !== 'Cancelled' && 
       datesOverlap(b.startDate, b.endDate, startDate, endDate)
     );
     return !hasConflict;
@@ -233,7 +239,7 @@ export async function createBooking(params: {
   const existingBookings = readBookings();
   const hasConflict = existingBookings.some((b) => 
     b.roomId === roomId && 
-    b.status !== 'cancelled' && 
+    b.status !== 'Cancelled' && 
     datesOverlap(b.startDate, b.endDate, startDate, endDate)
   );
   if (hasConflict) throw new Error('Room is not available for selected dates');
@@ -245,10 +251,12 @@ export async function createBooking(params: {
     id: `bk_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     roomId,
     userId: user.id,
+    guestName: user.name,
+    roomNumber: room.roomNumber,
     startDate,
     endDate,
     totalAmount,
-    status: 'confirmed',
+    status: 'Confirmed',
     createdAt: new Date().toISOString()
   };
 
