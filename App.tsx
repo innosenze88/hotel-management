@@ -8,6 +8,7 @@ import RoomGrid from './components/RoomGrid';
 import ArrivalsList from './components/ArrivalsList';
 import ForecastChart from './components/ForecastChart';
 import LoadingSpinner from './components/LoadingSpinner';
+import RoomManagementModal from './components/RoomManagementModal';
 import { BedIcon, DollarSignIcon, UsersIcon, ChartBarIcon } from './components/icons';
 
 const App: React.FC = () => {
@@ -18,19 +19,21 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      const [kpiData, roomData, arrivalData, forecastData] = await Promise.all([
-        api.fetchKpis(),
-        api.fetchRooms(),
-        api.fetchArrivals(),
+      const roomData = await api.fetchRooms();
+      setRooms(roomData);
+
+      const [kpiData, arrivalData, forecastData] = await Promise.all([
+        api.fetchKpis(roomData),
+        api.fetchArrivals(roomData),
         api.fetchForecast(),
       ]);
       setKpis(kpiData);
-      setRooms(roomData);
       setArrivals(arrivalData);
       setForecast(forecastData);
       setLastUpdated(new Date());
@@ -38,16 +41,40 @@ const App: React.FC = () => {
       setError('Failed to fetch dashboard data. Please try again later.');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Auto-refresh every 30 seconds
+    const interval = setInterval(() => fetchData(false), 30000); // Auto-refresh every 30 seconds
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchData]);
+
+  const handleSaveRooms = async (updatedRooms: Room[]) => {
+      setLoading(true);
+      setError(null);
+      try {
+          await api.saveRooms(updatedRooms);
+          // Optimistically update state for a snappier feel and consistency
+          setRooms(updatedRooms);
+          const [kpiData, arrivalData] = await Promise.all([
+              api.fetchKpis(updatedRooms),
+              api.fetchArrivals(updatedRooms),
+          ]);
+          setKpis(kpiData);
+          setArrivals(arrivalData);
+          setLastUpdated(new Date());
+      } catch (err) {
+          setError('Failed to save room data. Please try again later.');
+          console.error(err);
+          // If save fails, refetch from storage to revert optimistic update
+          await fetchData(false);
+      } finally {
+          setIsRoomModalOpen(false);
+          setLoading(false);
+      }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-6 lg:p-8">
@@ -95,7 +122,14 @@ const App: React.FC = () => {
 
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-white">Room Status</h2>
+               <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Room Status</h2>
+                <button 
+                    onClick={() => setIsRoomModalOpen(true)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                    Manage Rooms
+                </button>
+              </div>
               <RoomGrid rooms={rooms} />
             </div>
             <div className="space-y-8">
@@ -111,6 +145,12 @@ const App: React.FC = () => {
           </div>
         </main>
       )}
+       <RoomManagementModal
+            isOpen={isRoomModalOpen}
+            onClose={() => setIsRoomModalOpen(false)}
+            rooms={rooms}
+            onSave={handleSaveRooms}
+        />
     </div>
   );
 };
