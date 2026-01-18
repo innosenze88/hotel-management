@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { Room, Booking, User } from './types_bookings';
-import { searchAvailableRooms, createBooking, listRooms } from './services_bookings';
+import React, { useState, useEffect } from 'react';
+import { Room, Booking, User } from './types';
+import { searchAvailableRooms, createBooking, fetchRooms } from './services/api';
 import BookingConfirmation from './components/BookingConfirmation';
 
 export default function BookingForm() {
@@ -13,9 +13,9 @@ export default function BookingForm() {
   const [bookingResult, setBookingResult] = useState<Booking | null>(null);
   const [allRooms, setAllRooms] = useState<Room[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // load rooms to allow quick preview even without search
-    listRooms().then(setAllRooms).catch(() => {});
+    fetchRooms().then(setAllRooms).catch(() => {});
   }, []);
 
   async function handleSearch(e?: React.FormEvent) {
@@ -100,7 +100,7 @@ export default function BookingForm() {
 
             return (
               <div key={r.id} className="bg-gray-700/50 p-4 rounded-lg flex flex-col">
-                <div className="font-bold text-white">{r.name}</div>
+                <div className="font-bold text-white">Room {r.roomNumber} - {r.type}</div>
                 {r.description && <div className="text-sm text-gray-400 mt-1 flex-grow">{r.description}</div>}
                 <div className="mt-4 text-sm space-y-1 text-gray-300">
                   <div><span className="font-medium text-gray-400">Capacity:</span> {r.capacity}</div>

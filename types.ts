@@ -20,6 +20,9 @@ export interface Room {
   floor: number;
   type: RoomType;
   status: RoomStatus;
+  capacity: number;
+  pricePerNight: number;
+  description?: string;
 }
 
 export interface Guest {
@@ -48,4 +51,25 @@ export interface KpiData {
 export interface ForecastPoint {
   date: string;
   occupancy: number;
+}
+
+// --- Merged types from booking system ---
+
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+
+export interface Booking {
+  id: string;
+  roomId: string;
+  userId: string;
+  startDate: string; // ISO date (YYYY-MM-DD)
+  endDate: string; // ISO date (YYYY-MM-DD)
+  totalAmount: number;
+  status: BookingStatus;
+  createdAt: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email?: string;
 }

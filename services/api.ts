@@ -1,7 +1,8 @@
 
-import { KpiData, Room, Arrival, ForecastPoint, RoomType, RoomStatus } from '../types';
+import { KpiData, Room, Arrival, ForecastPoint, RoomType, RoomStatus, Booking, User } from '../types';
 
 const ROOMS_KEY = 'hotel_pulse_rooms';
+const BOOKINGS_KEY = 'hotel_pulse_bookings';
 const TOTAL_ROOMS = 50;
 
 const roomTypes: RoomType[] = [
@@ -24,24 +25,35 @@ const guestNames = [
   "Susan Davis", "Michael Miller", "Linda Wilson", "Robert Moore", "Patricia Taylor"
 ];
 
-// Simulate network delay
+// --- Helper Functions ---
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-const generateId = () => `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-// --- DATA INITIALIZATION & STORAGE ---
-
+// --- DATA INITIALIZATION & STORAGE (Rooms) ---
 const generateInitialMockRooms = (): Room[] => {
   const rooms: Room[] = [];
+  const details = {
+      [RoomType.Single]: { price: 800, capacity: 1, desc: "A cozy room perfect for a solo traveler." },
+      [RoomType.Double]: { price: 1200, capacity: 2, desc: "A spacious room with two beds, ideal for friends." },
+      [RoomType.Suite]: { price: 2200, capacity: 4, desc: "A luxurious suite with a separate living area." },
+      [RoomType.Deluxe]: { price: 1800, capacity: 2, desc: "An elegant room with premium amenities and a stunning view." },
+      [RoomType.Presidential]: { price: 5000, capacity: 6, desc: "The ultimate in luxury, with multiple rooms and exclusive services." },
+  };
+
   for (let i = 0; i < TOTAL_ROOMS; i++) {
     const floor = Math.floor(i / 10) + 1;
     const roomNum = floor * 100 + (i % 10) + 1;
+    const type = roomTypes[i % roomTypes.length];
+    
     rooms.push({
       id: generateId(),
       roomNumber: roomNum.toString(),
       floor,
-      type: roomTypes[i % roomTypes.length],
+      type: type,
       status: roomStatuses[Math.floor(Math.random() * roomStatuses.length)],
+      pricePerNight: details[type].price,
+      capacity: details[type].capacity,
+      description: details[type].desc,
     });
   }
   return rooms;
@@ -69,8 +81,39 @@ export const saveRooms = async (rooms: Room[]): Promise<void> => {
     await delay(100); // simulate async save
 };
 
-// --- DYNAMIC DATA GENERATORS ---
+// --- DATA INITIALIZATION & STORAGE (Bookings) ---
+function readBookings(): Booking[] {
+  try {
+    const raw = localStorage.getItem(BOOKINGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    localStorage.removeItem(BOOKINGS_KEY);
+    return [];
+  }
+}
 
+function writeBookings(bookings: Booking[]) {
+  localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+}
+
+// --- Booking Helper Functions ---
+function datesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+  const s1 = new Date(aStart);
+  const e1 = new Date(aEnd);
+  const s2 = new Date(bStart);
+  const e2 = new Date(bEnd);
+  return s1 < e2 && s2 < e1;
+}
+
+function nightsBetween(startDate: string, endDate: string) {
+  const s = new Date(startDate);
+  const e = new Date(endDate);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const diff = e.getTime() - s.getTime();
+  return Math.max(0, Math.ceil(diff / msPerDay));
+}
+
+// --- DYNAMIC DATA GENERATORS ---
 const generateDynamicArrivals = (rooms: Room[]): Arrival[] => {
   const arrivals: Arrival[] = [];
   const availableRooms = rooms.filter(r => r.status === RoomStatus.Available);
@@ -114,7 +157,7 @@ const generateMockForecast = (): ForecastPoint[] => {
 export const fetchRooms = async (): Promise<Room[]> => {
   await delay(200);
   let rooms = getRoomsFromStorage();
-  if (!rooms) {
+  if (!rooms || rooms.length === 0) {
     rooms = generateInitialMockRooms();
     await saveRooms(rooms);
   }
@@ -151,3 +194,65 @@ export const fetchForecast = async (): Promise<ForecastPoint[]> => {
   await delay(350);
   return generateMockForecast();
 };
+
+// --- API FUNCTIONS (Bookings) ---
+export async function searchAvailableRooms(startDate: string, endDate: string): Promise<Room[]> {
+  // Fix: Added missing argument to the 'delay' function call.
+  await delay(200);
+  if (!startDate || !endDate) return [];
+  
+  const allRooms = await fetchRooms();
+  const bookings = readBookings();
+
+  // A room is available if there is no booking that overlaps and is not cancelled
+  return allRooms.filter((room) => {
+    const hasConflict = bookings.some((b) => 
+      b.roomId === room.id && 
+      b.status !== 'cancelled' && 
+      datesOverlap(b.startDate, b.endDate, startDate, endDate)
+    );
+    return !hasConflict;
+  });
+}
+
+export async function createBooking(params: {
+  roomId: string;
+  user: User;
+  startDate: string;
+  endDate: string;
+}): Promise<Booking> {
+  // Fix: Added missing argument to the 'delay' function call.
+  await delay(200);
+  const { roomId, user, startDate, endDate } = params;
+
+  const allRooms = await fetchRooms();
+  const room = allRooms.find((r) => r.id === roomId);
+  if (!room) throw new Error('Room not found');
+  if (new Date(startDate) >= new Date(endDate)) throw new Error('Invalid date range');
+
+  const existingBookings = readBookings();
+  const hasConflict = existingBookings.some((b) => 
+    b.roomId === roomId && 
+    b.status !== 'cancelled' && 
+    datesOverlap(b.startDate, b.endDate, startDate, endDate)
+  );
+  if (hasConflict) throw new Error('Room is not available for selected dates');
+
+  const nights = nightsBetween(startDate, endDate);
+  const totalAmount = nights * room.pricePerNight;
+
+  const newBooking: Booking = {
+    id: `bk_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    roomId,
+    userId: user.id,
+    startDate,
+    endDate,
+    totalAmount,
+    status: 'confirmed',
+    createdAt: new Date().toISOString()
+  };
+
+  const updatedBookings = [...existingBookings, newBooking];
+  writeBookings(updatedBookings);
+  return newBooking;
+}

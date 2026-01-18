@@ -11,12 +11,26 @@ interface RoomManagementModalProps {
 
 const generateId = () => `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+// Fix: Add room details to derive properties from room type, preventing logic bugs for new rooms.
+const roomDetailsMap = {
+    [RoomType.Single]: { pricePerNight: 800, capacity: 1, description: "A cozy room perfect for a solo traveler." },
+    [RoomType.Double]: { pricePerNight: 1200, capacity: 2, description: "A spacious room with two beds, ideal for friends." },
+    [RoomType.Suite]: { pricePerNight: 2200, capacity: 4, description: "A luxurious suite with a separate living area." },
+    [RoomType.Deluxe]: { pricePerNight: 1800, capacity: 2, description: "An elegant room with premium amenities and a stunning view." },
+    [RoomType.Presidential]: { pricePerNight: 5000, capacity: 6, description: "The ultimate in luxury, with multiple rooms and exclusive services." },
+};
+
+// Fix: Added missing properties 'capacity' and 'pricePerNight' to fix the type error.
+// Values are derived from the room type to ensure correctness.
 const emptyRoomState: Omit<Room, 'id' | 'floor'> & { id: string | null; floor: string } = {
   id: null,
   roomNumber: '',
   floor: '1',
   type: RoomType.Single,
   status: RoomStatus.Available,
+  capacity: roomDetailsMap[RoomType.Single].capacity,
+  pricePerNight: roomDetailsMap[RoomType.Single].pricePerNight,
+  description: roomDetailsMap[RoomType.Single].description,
 };
 
 const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen, onClose, rooms, onSave }) => {
@@ -65,9 +79,21 @@ const RoomManagementModal: React.FC<RoomManagementModalProps> = ({ isOpen, onClo
     }
   };
 
+  // Fix: Update form change handler to automatically update room properties based on type.
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setSelectedRoom(prev => ({ ...prev, [name]: value }));
+    setSelectedRoom(prev => {
+        const newState = { ...prev, [name]: value };
+        if (name === 'type') {
+            const details = roomDetailsMap[value as RoomType];
+            if (details) {
+                newState.capacity = details.capacity;
+                newState.pricePerNight = details.pricePerNight;
+                newState.description = details.description;
+            }
+        }
+        return newState;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
