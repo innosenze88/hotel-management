@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Booking } from '../types_bookings';
+import { Booking } from '../types';
 
 interface BookingConfirmationProps {
   booking: Booking;

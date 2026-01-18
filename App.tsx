@@ -10,7 +10,7 @@ import ForecastChart from './components/ForecastChart';
 import LoadingSpinner from './components/LoadingSpinner';
 import RoomManagementModal from './components/RoomManagementModal';
 import { BedIcon, DollarSignIcon, UsersIcon, ChartBarIcon } from './components/icons';
-import BookingForm from './components_BookingForm';
+import BookingForm from './components/BookingForm';
 
 const App: React.FC = () => {
   const [kpis, setKpis] = useState<KpiData | null>(null);
@@ -79,6 +79,11 @@ const App: React.FC = () => {
       }
   };
 
+  const handleBookingSuccess = () => {
+    // Refetch data without the main loading spinner to update KPIs, arrivals, etc.
+    fetchData(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-6 lg:p-8">
       <Header lastUpdated={lastUpdated} isConnected={!error} />
@@ -133,12 +138,13 @@ const App: React.FC = () => {
                     Manage Rooms
                 </button>
               </div>
-              <RoomGrid rooms={rooms} />
+              <RoomGrid rooms={rooms} onBookingSuccess={handleBookingSuccess} />
             </div>
             <div className="space-y-8">
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Book a Room</h2>
-                <BookingForm />
+                {/* FIX: Pass the required onBookingSuccess prop to BookingForm. */}
+                <BookingForm onBookingSuccess={handleBookingSuccess} />
               </div>
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Today's Arrivals</h2>
