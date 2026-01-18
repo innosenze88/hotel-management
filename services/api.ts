@@ -264,3 +264,16 @@ export async function createBooking(params: {
   writeBookings(updatedBookings);
   return newBooking;
 }
+
+export const cancelBooking = async (bookingId: string): Promise<Booking> => {
+  await delay(200);
+  const bookings = readBookings();
+  const bookingIndex = bookings.findIndex(b => b.id === bookingId);
+  if (bookingIndex === -1) {
+    throw new Error("Booking not found");
+  }
+  
+  bookings[bookingIndex].status = 'Cancelled';
+  writeBookings(bookings);
+  return bookings[bookingIndex];
+};

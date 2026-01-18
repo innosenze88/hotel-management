@@ -4,6 +4,7 @@ import { Booking, BookingStatus } from '../types';
 
 interface BookingListProps {
   bookings: Booking[];
+  onCancelBooking: (bookingId: string) => void;
 }
 
 const statusColors: Record<BookingStatus, string> = {
@@ -13,7 +14,13 @@ const statusColors: Record<BookingStatus, string> = {
   'Cancelled': 'bg-red-600 text-white',
 };
 
-const BookingList: React.FC<BookingListProps> = ({ bookings }) => {
+const BookingList: React.FC<BookingListProps> = ({ bookings, onCancelBooking }) => {
+  const handleCancelClick = (bookingId: string) => {
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      onCancelBooking(bookingId);
+    }
+  };
+
   if (bookings.length === 0) {
     return (
       <div className="text-center text-gray-500 py-10">
@@ -32,6 +39,7 @@ const BookingList: React.FC<BookingListProps> = ({ bookings }) => {
             <th scope="col" className="px-4 py-3 hidden sm:table-cell">Check-in</th>
             <th scope="col" className="px-4 py-3 hidden md:table-cell">Check-out</th>
             <th scope="col" className="px-4 py-3">Status</th>
+            <th scope="col" className="px-4 py-3">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -45,6 +53,16 @@ const BookingList: React.FC<BookingListProps> = ({ bookings }) => {
                 <span className={`px-2 py-1 text-xs font-bold rounded-full ${statusColors[booking.status]}`}>
                   {booking.status}
                 </span>
+              </td>
+              <td className="px-4 py-3">
+                {booking.status === 'Confirmed' && (
+                  <button
+                    onClick={() => handleCancelClick(booking.id)}
+                    className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
               </td>
             </tr>
           ))}

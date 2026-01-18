@@ -83,6 +83,17 @@ const App: React.FC = () => {
     fetchData(false);
   };
 
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      await api.cancelBooking(bookingId);
+      // Refetch all data to ensure consistency across the dashboard
+      fetchData(false);
+    } catch (err) {
+      setError('Failed to cancel booking. Please try again later.');
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 font-sans p-4 sm:p-6 lg:p-8">
       <Header lastUpdated={lastUpdated} isConnected={!error} />
@@ -142,7 +153,7 @@ const App: React.FC = () => {
             <div className="space-y-8">
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Current Bookings</h2>
-                <BookingList bookings={bookings} />
+                <BookingList bookings={bookings} onCancelBooking={handleCancelBooking} />
               </div>
               <div className="bg-gray-800 p-6 rounded-xl shadow-lg">
                 <h2 className="text-xl font-bold mb-4 text-white">Today's Arrivals</h2>
